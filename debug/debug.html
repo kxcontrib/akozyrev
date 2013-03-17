@@ -1,0 +1,252 @@
+
+<html>
+	<style type="text/css">
+          span { color: #000000; }
+          .value_number_short, .value_number_long, .value_number_int, .value_number_byte, .value_number_float, .value_number_real { color: #3368ff; }
+          .value_null_int, .value_null_short, .value_null_long, .value_null_real, .value_null_month, .value_null_date, .value_null_datetime, .value_null_minute, .value_null_second, .value_null_time, .value_null_timestamp, .value_null_timespan, .value_null_float { color: #3368ff; }
+          .value_inf_int, .value_inf_float, .value_inf_short, .value_inf_long, .value_inf_real, .value_inf_month, .value_inf_date, .value_inf_datetime, .value_inf_minute, .value_inf_second, .value_inf_time, .value_inf_timestamp, .value_inf_timespan { color: #3368ff; }
+          .value_time_date, .value_time_month, .value_time_datetime, .value_time_timespan, .value_time_timestamp, .value_time_minute, .value_time_second, .value_time_time { color: #3368ff; }
+          .value_number_boolean { color: #33ccff; }
+          .value_symbol { color: #b30086; }
+          .value_char, .value_string { color: #14c800; }
+          .var_keyword { color: #0000ff; }
+          .var_zword, .var_qword { color: #f0b400; }
+          .var_global, .var_simple { color: #b4a000; };
+          .comment_multiline, .comment_line, .comment_eof { color: #808080; }
+          .value_number_error, .value_null_error, .value_time_error, var_error { color: #ff0000; }
+          .value_number_unknown, .unknown { color: #ff0000; }
+
+          .bgnorm { background-color: #ffffff; }
+          .bgcurr { background-color: #ccffcc; }
+          .bgbpoint, .bgchanged { background-color: #ffcccc; }
+          .nocolor { }
+          .argtbl { text-align: left; padding:0.1in; line-height:normal;text-autospace:none;font-size: 8pt; font-family: Consolas; white-space: nowrap; width=100%; height: 100%;} 
+	</style>
+ <head>
+ </head>
+ <body onLoad="init();">
+	<script type="text/javascript" src="jquery-1.5.1.min.js"></script>
+        <script type="text/javascript" src="jquery.blockUI.js"></script>
+	<script type="text/javascript" >
+                        function clearSelection() { 
+                               if(document.selection && document.selection.empty) {
+                                   document.selection.empty();
+                               } else if(window.getSelection) {
+                                    var sel = window.getSelection();
+                                    sel.removeAllRanges();
+                               }
+                        };
+                        function setScrollTop() {
+                          var dst = $("#CodeOut")[0].scrollTop;
+                          var dch = $("#CodeOut")[0].clientHeight;
+                          var ch = $(".bgcurr")[0].scrollHeight;
+                          var off = $(".bgcurr")[0].offsetTop-$("#Code")[0].offsetTop;
+                          if((off>=dst)&&(off+2*ch<=dst+dch)) { return; };
+                          $("#CodeOut").scrollTop(off-dch/2);
+                        };
+                        var txtTxt = $("#txtBlock").attr("value");
+                        function txtBlur(txt) {
+                          txtTxt = txt.value;
+                          if ('selectionStart' in txt) {
+                            if (txt.selectionStart != txt.selectionEnd) {
+                              txtTxt = txtTxt.substring(txt.selectionStart, txt.selectionEnd);
+                            }
+                          } else {
+                            var textRange = document.selection.createRange();
+                            var rangeParent = textRange.parentElement();
+                            if (rangeParent === txt) {
+                              if (textRange.text != "") txtTxt = textRange.text;
+                            }
+                          }
+                        };
+			function init() {
+                          $.get("txt?.d.html[`init]");
+                          $.ajaxSetup({ cache: false });
+                          fullRefresh();
+                        };
+                        function fullRefresh() {
+                          refreshExec();
+                          refresh();
+                        };
+                        var spanTimer;
+                        var spanTxt;
+                        function spanClick() {
+                          $.get("?execcode",{txt: spanTxt},function (data) {
+                              $("#Output").append(data);
+                              $("#OutOut").scrollTop($("#OutOut")[0].scrollHeight);
+                              spanBind($("#Output span"));
+                           });
+                        };
+                        function spanBind(el) {
+                             el.bind("click",function () {
+                                if ($(this).hasClass("nocolor")) return;
+                                clearTimeout(spanTimer);
+                                spanTimer = setTimeout(spanClick,250);
+                                spanTxt = $(this).text();
+                             });
+                        };
+                        function refresh() {
+                          $.get("?args",function (data) { $('#Vars').html(data); $('#Vars')[0].style.width = $('#VarsOut')[0].scrollWidth;});
+                          $.get("?stack",function (data) {
+                              $('#Stack').html(data);
+                              $("div#Stack div").bind("dblclick",function (e) {
+                                clearSelection();
+                                $.get("?sshow"+$(this).attr("id"),function (data) { refresh(); });
+                                return false;
+                              });
+                            });
+                          $.get("?code",function (data) {
+                              $('#Code').html(data); 
+                              setScrollTop();
+                              $("div#Code div").bind("dblclick",function () {
+                                clearSelection();
+                                clearTimeout(spanTimer);
+                                $.get("?setbp"+$(this).attr("id"),function (data) { refresh(); });
+                                return false;
+                              });
+                              spanBind($("div#Code span"));
+                            });
+                          refreshCnt();
+                        }
+                        var stepTimer;
+                        function blockDbg() {
+                          $.blockUI({message : "Step is taking some time, please wait..."});
+                        }
+                        function makeStep(d) {
+                          stepTimer = setTimeout(blockDbg,1000);
+                          $.get("?"+d, function (data) { clearTimeout(stepTimer); $.unblockUI(); $("#Output").html(data); refresh() });
+                        }
+                        function refreshCnt() {
+                          $.get("?excpcnt",function (data) { $("#excpCnt").attr("value",data); });
+                        }
+                        function sendCnt() {
+                          $.get("?setcnt"+$("#excpCnt").attr("value"));
+                        }
+                        function refreshExec() {
+                          $.get("?execst",function (data) { $("#chExec").attr("checked",data); });
+                        }
+                        function toggleExec() {
+                          $.get("?toggleExec");
+                        }
+                        function getText() { if (txtTxt) return txtTxt; return $("#txtBlock").attr("value");};
+                        function execCode() {
+                          $.get("?execcode",{txt: getText()},function (data) { $("#Output").html(data); spanBind($("#Output span")); });
+                        }
+                        function prepCode() {
+                          $.get("?prep",{txt: getText()},function (data) { $("#Output").html(data) });
+                          refresh();
+                        }
+                        function runCode() {
+                          $.blockUI({message : "Please wait..."});
+                          $.get("?run",{txt: getText()},function (data) { $.unblockUI(); $("#Output").html(data);refresh(); });
+                        }
+                        function showFn() {
+                          $.get("?showfn",{txt: getText()},function (data) { $("#Output").html(data) });
+                          refresh();
+                        }
+                        function showFn2(n) {
+                           $.get("?showfn",{txt: "(key .d.bps)"+n});
+                           refresh();
+                        }
+                        function showBPS() {
+                          $.get("?showbp",function (data) { $("#Output").html(data) });
+                        }
+                        function clearBPS() {
+                          $.get("?clearbp",function (data) { $("#Output").html(data) });
+                          refresh();
+                        }
+                        function about() {
+                          $.blockUI({message: "<div onclick='$.unblockUI()' style='font-size: 12pt; font-family: Helvetica, sans-serif; font-weight:600; '><br>Debug.html: web frontend for debug.q<br> DB, 2012, Andrey Kozyrev.<br>Click to close.<br><br></div>" });
+                        }
+                        function help() {
+                          $.blockUI({message: $("#hlp"), css: {cursor: 'default', width:'80%', top:'10%', left:'10%', height:'80%', overflow:'auto'} });
+                        }
+                        function showTbl(n) {
+                          $.blockUI({message: $("#"+n), css: {cursor: 'default', width:'90%', height:'90%',  top:'5%', left:'5%', overflow:'auto'} });
+                        }
+	</script>
+
+        <form><input type=button value="Step Into" onClick="makeStep('into')">
+              <input type=button value="Step Over" onClick="makeStep('over')">
+              <input type=button value="Step Out" onClick="makeStep('fend')">
+              <input type=button value="One Instr" onClick="makeStep('instr')">
+              <input type=button value="Continue" onClick="makeStep('cont')">
+              <input type=checkbox checked="false" id="chExec" onChange="toggleExec()"/>
+              :check to enable native execution &nbsp;&nbsp;
+              <input type=text value="" size="4" id="excpCnt" style="text-align: right;" onChange="sendCnt()"/>
+              :number of exceptions to handle via the catch blocks
+        </form>
+        <form><table><tr>
+          <td><textarea id="txtBlock" rows="5" cols="45" onblur="txtBlur(this);" style="line-height:normal;text-autospace:none;font-size: 10pt; font-family: Consolas;" spellcheck="false"></textarea></td>
+          <td>
+              <input type=button value="Exec" style="width: 100%;" onClick="execCode()"><br>
+              <input type=button value="Run" style="width: 100%;" onClick="runCode()"><br>
+              <input type=button value="Prepare" onClick="prepCode()">
+          </td>
+           <td>
+              <input type=button value="Show Fn" style="width: 100%;" onClick="showFn()"><br>
+              <input type=button value="Show Bps" style="width: 100%;" onClick="showBPS()"><br>
+              <input type=button value="Clear Bps" onClick="clearBPS()">
+          </td>
+           <td>
+              <input type=button value="Refresh" onClick="refresh()"><br>
+              <input type=button value="Help" style="width: 100%;" onClick="help()"><br>
+              <input type=button value="About" style="width: 100%;" onClick="about()">
+          </td>
+        </form></table></tr>
+        <div style="width: 48%; height: 30%; overflow: auto;line-height:normal;text-autospace:none;font-size: 8pt; font-family: Consolas; white-space: nowrap; float: left; border: solid 2px; margin: 0.01in; ">
+             <div id="Stack" style="margin: 0.1in; ">
+			Loading...
+		</div>
+        </div>
+        <div id="VarsOut" style="width: 48%; height: 30%; overflow: auto; float: left; border: solid 2px; margin: 0.01in; ">
+            <div id="Vars" style="margin: 0.1in;line-height:normal;text-autospace:none;font-size: 8pt; font-family: Consolas; white-space: nowrap;">
+                        Loading...
+            </div>
+        </div>
+        <div id="CodeOut" style="border: solid 2px; width: 56%; height: 50%; overflow: auto; float: left; margin: 0.01in; ">
+           <div id="Code" style="margin: 0.1in;line-height:normal;text-autospace:none;font-size: 8pt; font-family: Consolas; white-space: nowrap;">Loading...</div>
+        </div>
+        <div id="OutOut" style="border: solid 2px; width: 40%; height: 50%; overflow: auto; float: left; margin: 0.01in; line-height:normal;text-autospace:none;font-size: 8pt; font-family: Consolas; white-space: nowrap;">
+          <div id="Output" style="margin: 0.1in; ">Output will be printed here<br></div>
+        </div>
+        <div style="visibility: hidden; display: none"><div id="hlp" style="text-align: left; margin:0.1in; font-size: 10pt; font-family: Helvetica, sans-serif; font-weight:500;" onclick="$.unblockUI()">
+            <h3> Buttons 'Step Into', 'Step Over', 'Step Out', 'One Instr', 'Continue' </h3>
+            Use these buttons in the debug mode to execute pieces of code. All these buttons change all four output windows.
+            <h3> Check Box </h3>
+            If it is checked all functions will be executed natively. Breakpoints will not work. Use it to step over the timely functions.
+            <h3> Exceptions field </h3>
+            Number of exceptions to be captured by the catch blocks. Set it to 0 if you want to supress the catch blocks.
+            <h3> Text area </h3>
+            You may enter some code in it. Note that its capacity is limited.
+            <h3> Exec button </h3>
+            Executes 'Text Area' (selected) content in the debugged process. Output is printed to Output window. Use it to evaluate simple Q expressions.
+            <h3> Run button </h3>
+            Runs 'Text Area' (selected) content in the debug mode. It will stop on exceptions, breakpoints or return the result. See Output window for the result of the operation.
+            <h3> Prepare button </h3>
+            Uses 'Text Area' (selected) content to initialize the debugger. You may then use the debug buttons.
+            <h3> Show Fn button </h3>
+            Enter an expression that evaluates to the user function into 'Text Area' or select it and press this button. It will print this function to Code window. You then may add/remove breakpoints to/from this function.
+            <h3> Show Bps button </h3>
+            Prints all breakpoints to Output window.
+            <h3> Clear Bps button </h3>
+            Removes all breakpoints.
+            <h3> Refresh buttton </h3>
+            Reloads the default content of all windows. Use it restore the current debug status.
+            <h3> Help and About buttons</h3>
+            Prints help and about messages.
+            <h3> Stack window </h3>
+            Contains the current debug status, information about the current function and the top stack entries. You may double click on the function stack entry, the function body will be printed to Code window and its parameters and local variables to Variables window. 
+            <h3> Variables window </h3>
+            Parameters and local variables of the current function are printed in this window. Changed vars are marked. 
+            <h3> Code window </h3>
+            Function bodies are printed in this window. Different background is used for breakpoints and the current line. You may click on some value and it will be printed in Output window (qparse.q required). You may double click on some line to add/remove a breakpoint.
+            <h3> Output window </h3>
+            The result of all operations is printed in this window. If it contains breakpoints you may click on them to see the underlying function and add/remove them. Otherwise you may click on some variable to see its value after most operations.
+            <br><br><br><b>Click to close</b>
+        </div></div>
+
+ </body>
+
+	
+</html>
