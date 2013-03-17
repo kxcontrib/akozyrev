@@ -1,0 +1,1 @@
+See http://code.kx.com/wiki/Contrib/debugQ or the pdf file for help.
