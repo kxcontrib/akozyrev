@@ -70,11 +70,11 @@
 .oo.classNS:`.objs; / namespace for instances and class definitions. .objs by default.
 .oo.cid:`$"_obj_";
 .oo.oid:0;
-.oo.gc:{if[(x~`)|x~(::);x:key .oo.classNS]; if[count o:x where{1=-16!.oo.classNS[x]`.id}each x:x where x like\: "o[0-9]*"; ![`.objs;();0b;o]]; count o};
+.oo.gc:{if[(x~`)|x~(::);x:key .oo.classNS]; if[count o:x where{if[1=-16!.oo.classNS[x]`.id; @[.oo.classNS;x;:;1]; :1b];0b}each x:x where x like\: "o[0-9]*"; ![`.objs;();0b;o]]; count o};
 / .oo.setClsMeths:{[c]{(set)./:$[y;1_;::]flip(`$x,/:(".set";".get"),\:@[$[(f:string z)like":*";1_f;f];0;upper];(.oo.setField[;z];.oo.getField[;z]))}[string c`.ns]'[k in c`.readOnly;k:k where not(k:key c)like ".*"];};
 .oo.addCType:{[n;s] if[not all s in key .oo.pmap; '"Subclass is undefined"]; .oo.pmap[n]:distinct n,(raze .oo.pmap s),`any};
 .oo.defclass:{[n;sub;i] i:(`.pclass`.class`!((),sub;n;::)),i; (`$string[.oo.classNS],".",string n)set i; .oo.addCType[n;sub]; n};
-.oo.getInstance:{[n;a] if[not 99=type c:.oo.classNS .` vs n;'"Class undefined"]; f:$[`.init in key c;c`.init;{y;x}]; f[({$[count x;(k where not (k:key x)like"..*")#x;x]},/[.oo.getInstance[;a]each c`.pclass]),c;a]};
+.oo.getInstance:{[n;a] if[not 99=type c:.oo.classNS .` vs n;'"Class undefined"]; f:$[`.init in key c;c`.init;{y;x}]; f[({$[count x;(k where not (k:key[x]except`:.meths`:.this)like"..*")#x;x]},/[.oo.getInstance[;a]each c`.pclass]),c;a]};
 .oo.makeInstance0:{[a] c:.oo.getInstance[a 0;1_a]; c[`..obj`.id]:(n:`$string[.oo.classNS],".o",string .oo.oid+:1;enlist .oo.cid); c};
 .oo.makeInstance:(')[{c:.oo.makeInstance0[x]; c[`..obj] set c; {z;x}[c`..obj;c`.id]};enlist]; / accepts any number of args
 / .oo.delete:{if[1=-16!x`.id; ![.oo.classNS;();0b;(),x`.class]]};
@@ -87,15 +87,16 @@
 / list of members: ((`publicVal;iVal);(`.protectedVal;i);(`:staticVal;i);(`final;`f;{});(`static;`f;{});(virtual | `;`f;{}))
 / all methods by default accept 'this'. On the first call if an exception 'rank' or 'undefined' happens the fn will be changed to ignore 'this' and this decision will never be redone.
 /  thus all general and multimethod functions should be consistent - either they accept 'this' or not
-.oo.hasTGen:{"j"$$[(104=type v 0)&(enlist)~last v:value x;.oo.hasThis[v 0]|any .oo.hasThis each (v:value v 0)1;any v[1]~/:.oo.proxy;any .oo.hasThis each value[v 0][2;`f];.oo.hasThis v 1]};
+.oo.hasTGen:{"j"$$[(104=type v 0)&(enlist)~last v:value x;.oo.hasThis[v 0]|max .oo.hasThis each (v:value v 0)1;any v[1]~/:.oo.proxy;max .oo.hasThis each value[v 0][2;`f];.oo.hasThis v 1]};
 .oo.hasThis:{[f] "j"$$[100=t:type f;$[`this=f:first value[f]1;1;`THIS=f;3;0];-11=t;.z.s value f;104=t;.z.s first value f;105=t;.oo.hasTGen f;t within(106;111);.z.s first value f;0]};
 .oo.setf:{[THIS;f;v] $[f like ":*"; .[.oo.classNS;(` vs THIS`.class),f;:;v]; @[THIS;f;:;v]]; v};
 .oo.getf:{[THIS;f] $[f like ":*"; .oo.classNS .` vs THIS`.class;THIS] f};
-.oo.getFields:{y:enlist[(`.meth;::)],y;f:(!). flip y where 2=i:count each y;f[`.meth]:update c:x from (flip `t`n`f!flip ((`;x;{[this] this[`obj]});(`;`;{'string x 0})),(raze{(s[0]in .Q.A)_flip(``;`$("set";"get"),\:@[$[":"=(s:string x) 0;1_s;s];0;upper];(.oo.setf[;x];.oo.getf[;x]))}each k where not(k:key f)like".*"),y where 3=i);f};
-.oo.class:{[n;s;m] .oo.defclass[n;$[s~(::);();distinct `obj,s];.oo.getFields[n;m]]};
+.oo.getFields:{y:enlist[(`.meth;::)],y;f:(!). flip y where 2=i:count each y;f[`.meth]:update c:x from (flip `t`n`f!flip ((`;x;{[this] this[`obj]});(`;`;{'string x 0})),({(`;x;.oo.defgen[.oo.getf[;x],.oo.setf[;x];1 2])}each key f),y where 3=i);f[`:.acc]:k!{$["."=(x:string x)0;2;":."~2#x;2;x[0]in .Q.A;1;(":"=x 0)&x[1]in .Q.A;1;0]}each k:key f;f};
+.oo.class:{[n;s;m] .oo.defclass[n;$[s~(::);();s~();`obj;distinct (),s];.oo.getFields[n;m]]};
 .oo.setupMeth:{[m] m:(exec last f by n from update n:`${string[x],":",string y}'[c;n] from m),exec last f by n from m;(m;.oo.hasThis each m)};
 .oo.getClass:{[a] if[not `:.meths in key c:.oo.makeInstance0[a]; c[j:`:.meths`:.this]:.oo.setupMeth {(,/[.z.s each c`.pclass]),(c:.oo.classNS .` vs x)`.meth}a 0; .oo.setf[c]'[j;c j]]; c};
-.oo.exec:{[n;id;a] ms:n[`:.meths]; m:a 0; $[-11=type m;if[not m in key ms;a:(m:`;a)];a:(m:`;a)]; a:$[th:(n`:.this)m;$[th=3;n;((')[.z.s[n;id];enlist])];()],1_a; ms[m] . $[count a;a;(),(::)]};
+.oo.exec:{[n;id;a] if[-11=type m:a 0; if[2=acc:n[`:.acc]m;'protected]; if[(1<count a)&1=acc;'readonly]]; .oo.pexec[n;id;a]};
+.oo.pexec:{[n;id;a] ms:n[`:.meths]; m:a 0; $[-11=type m;if[not m in key ms;a:(m:`;a)];a:(m:`;a)]; a:$[th:(n`:.this)m;$[th=3;n;((')[.z.s[n;id];enlist])];()],1_a; ms[m] . $[count a;a;(),(::)]};
 .oo.new:(')[{c:.oo.getClass[x]; c[`..obj] set c; o:(')[.oo.exec[c`..obj;c`.id];enlist]; o . x; o};enlist];
 .oo.getTHIS:{[t] .oo.getFld[t;`..obj]};
 .oo.getInfo:{[f] o:get(value first value f)1; o};
@@ -190,5 +191,7 @@
 .oo.pmap:{m:`any`dict`func`obj`list`atom!(();`any;`any;`any;`any;`any);m:m,(v!((v:v where(v:distinct value .oo.tmap)like "*?list"),\:`list`any)),(k!k:.oo.tmap`b`g`x`h`i`j`e`f`c`s`p`m`d`z`n`u`v`t`enum),\:(`atom`any);m[v]:(v:`table`ktable`stable`ptable`mtable),'(`list`any;`table`dict`any;`table`any;`table`any;`table`list`any);m}[];
 
 .oo.class[`obj;::]
-  ((`;`obj;{[THIS] if[`..abstract in key THIS;'abstract];});
+  ((`;`obj;{[THIS] if[`..abstract in key THIS;'abstract];}); / ensure abstract classes can't be created
+   (`;`pthis;{[this] (')[.oo.exec . 1_ value (value this)0;enlist]}); / return protected this
+   (`;`.class;{[THIS] THIS`.class}); / obj class
    (`..abstract;1));
