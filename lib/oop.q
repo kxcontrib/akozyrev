@@ -6,13 +6,17 @@
 / @param name (symbol|any) Input value.
 / @returns any Returns set[name] ir id function.
 .oo.set:{$[-11=type x;set[x];::]};
+/ Transforms N arg function to any number of args function.
+/ @param x func function.
+.oo.makeg:{(')[x;enlist]};
 
 / Create an anonymous general fn.
 / @param f func General function or (::).
 / @param b func Function to be added to the general function.
 / @param a long - Number of the f arguments.
 / @returns func General function that calls 'f' for 'a' number of arguments. If it is not defined for some 'a' then 'undefined will be raised.
-.oo.defgen0:{[f;b;a] f:$[f~(::);(')[{(x count y). y}9#('[{'"undefined"};enlist]);enlist];105=type f;f;'type]; ('[{(x count y). y}@[(value value[f]0)1;a;:;b];enlist])};
+.oo.defgen0:{[f;b;a] f:$[f~(::);.oo.makeg .oo.defcore 9#.oo.makeg {'"undefined"};105=type f;f;'type]; .oo.makeg {(x count y). y}@[(value value[f]0)1;a;:;b]};
+.oo.defcore:{(x count y). y};
 
 / Create a general function. Such function can accept any number of arguments from 0 to 8.
 / .oo.defgen is generic itself and accept up to 3 arguments. 3 types of input functions are accepted: symbol (function name), function or function list. Mixed lists of functions and symbols can be used too.
@@ -31,7 +35,7 @@
 / default func is called once by default but it can call the next fn. In this case it should have two args with names `state`args but defined with the proper number of arguments: defmeth[`m;{[state;args] ...};5]
 .oo.aspect.default.unique:1b; / unique=1b means only 1 such fn can exist in a multimethod per arg combination
 .oo.aspect.default.order:1b;  / sort by specificity or reverse
-.oo.aspect.default.fn:{[sett;args;func;i] r:f . $[`state`args~(value f:func[i;`f])1;((sett;select from func where a=`default;0);args);args]; .oo.aspect.after.fn[sett;args;func;i]; r}; 
+.oo.aspect.default.fn:{[sett;args;func;i] r:f . $[`state~first (value f:func[i;`f])1;enlist[(sett;func;$[`default=func[i+1;`a];i+1;-1])],args;args]; .oo.aspect.after.fn[sett;args;func;i]; r}; 
 
 / after can't do anything with the result, but it is sorted in the desc order
 .oo.aspect.after.unique:0b;
@@ -63,42 +67,56 @@
 / define class: name, subclasses, initial dictionary
 / initial dictionary contains all class fields + some settings
 / Settings:
-/  .init - will be called when an instance is created init[obj dict;passed args]. init gets not object but dictionary thus general fns will not recognize it as an obj.
+/  .init - will be called when an instance is created init[obj dict;passed args]. init gets a dictionary not an object thus general fns will not recognize it as an obj.
 /  .class - will be set to the user class name.
-/  .pclass - will be set to class names of subclasses.
+/  .pclass - will be set to the class names of subclasses.
 /  ..obj - will be set to the undelying obj name
 .oo.classNS:`.objs; / namespace for instances and class definitions. .objs by default.
-.oo.cid:`$"_obj_";
-.oo.oid:0;
+.oo.cid:`$"_obj_"; / reference counter
+.oo.oid:0; / object number cnt
+.oo.cmap:()!(); / map from the class names to their base objects with static fields and etc
+/ Leaf garbage collector, doen't resolve circles.
 .oo.gc:{if[(x~`)|x~(::);x:key .oo.classNS]; if[count o:x where{if[1=-16!.oo.classNS[x]`.id; @[.oo.classNS;x;:;1]; :1b];0b}each x:x where x like\: "o[0-9]*"; ![`.objs;();0b;o]]; count o};
-/ .oo.setClsMeths:{[c]{(set)./:$[y;1_;::]flip(`$x,/:(".set";".get"),\:@[$[(f:string z)like":*";1_f;f];0;upper];(.oo.setField[;z];.oo.getField[;z]))}[string c`.ns]'[k in c`.readOnly;k:k where not(k:key c)like ".*"];};
-.oo.addCType:{[n;s] if[not all s in key .oo.pmap; '"Subclass is undefined"]; .oo.pmap[n]:distinct n,(raze .oo.pmap s),`any};
-.oo.defclass:{[n;sub;i] i:(`.pclass`.class`!((),sub;n;::)),i; (`$string[.oo.classNS],".",string n)set i; .oo.addCType[n;sub]; n};
-.oo.getInstance:{[n;a] if[not 99=type c:.oo.classNS .` vs n;'"Class undefined"]; f:$[`.init in key c;c`.init;{y;x}]; f[({$[count x;(k where not (k:key[x]except`:.meths`:.this)like"..*")#x;x]},/[.oo.getInstance[;a]each c`.pclass]),c;a]};
+.oo.addCType:{[n;s] if[not all s in key .oo.pmap; '"Subclass is undefined"]; .oo.tmap[n]:n; .oo.pmap[n]:distinct n,(raze .oo.pmap s),`any};
+.oo.defclass:{[n;sub;i] .oo.addCType[n;sub]; i:(`.pclass`.class`.init!((),sub;n;{y;x})),i; (cn:`$string[.oo.classNS],".",string[n],"_c")set i; .oo.cmap[n]:cn; n};
+.oo.getInstance:{[n;a] if[not 99=type c:@[get;.oo.cmap n;0];'"Class undefined: ",.Q.s n]; (c`.init)[({$[count x;(k where not (k:key[x]except`:.meths`:.this`:.acc)like"..*")#x;x]},/[.oo.getInstance[;a]each c`.pclass]),c;a]};
 .oo.makeInstance0:{[a] c:.oo.getInstance[a 0;1_a]; c[`..obj`.id]:(n:`$string[.oo.classNS],".o",string .oo.oid+:1;enlist .oo.cid); c};
-.oo.makeInstance:(')[{c:.oo.makeInstance0[x]; c[`..obj] set c; {z;x}[c`..obj;c`.id]};enlist]; / accepts any number of args
-/ .oo.delete:{if[1=-16!x`.id; ![.oo.classNS;();0b;(),x`.class]]};
-.oo.isObj:{if[105=type y;y:first value y]; if[104=type y;y:value y;if[enlist[.oo.cid]~y 2;:y 1]]; $[x;'"Not object";0]};
-.oo.setFld:{[this;f;v] oo:.oo.isObj[1;this]; $[f like ":*";.[.oo.classNS;(` vs oo`.class),f;:;v];@[oo;f;:;v]]; this};
-.oo.getFld:{[this;f] oo:.oo.isObj[1;this]; $[f like ":*";.oo.classNS . ` vs oo`.class;oo] f};
+.oo.makeInstance:.oo.makeg {c:.oo.makeInstance0[x]; c[`..obj] set c; {z;x}[c`..obj;c`.id]}; / accepts any number of args
+.oo.isObj:{if[105=type y;y:first value y]; if[104=type y;y:value y;if[enlist[.oo.cid]~y 2;:y 1]]; $[x;'"Not object";`]};
+/ raw methods to set/get any fields
+.oo.setFld:{[th;f;v] oo:.oo.isObj[1;th]; $[f like ":*";@[.oo.cmap oo`.class;f;:;v];@[oo;f;:;v]]; th};
+.oo.getFld:{[th;f] oo:.oo.isObj[1;th]; $[f like ":*";.oo.cmap oo`.class;oo] f};
 
 / Java like objects
 / .oo.class[`name;subclasses;list of members]
-/ list of members: ((`publicVal;iVal);(`.protectedVal;i);(`:staticVal;i);(`final;`f;{});(`static;`f;{});(virtual | `;`f;{}))
-/ all methods by default accept 'this'. On the first call if an exception 'rank' or 'undefined' happens the fn will be changed to ignore 'this' and this decision will never be redone.
-/  thus all general and multimethod functions should be consistent - either they accept 'this' or not
-.oo.hasTGen:{"j"$$[(104=type v 0)&(enlist)~last v:value x;.oo.hasThis[v 0]|max .oo.hasThis each (v:value v 0)1;any v[1]~/:.oo.proxy;max .oo.hasThis each value[v 0][2;`f];.oo.hasThis v 1]};
-.oo.hasThis:{[f] "j"$$[100=t:type f;$[`this=f:first value[f]1;1;`THIS=f;3;0];-11=t;.z.s value f;104=t;.z.s first value f;105=t;.oo.hasTGen f;t within(106;111);.z.s first value f;0]};
-.oo.setf:{[THIS;f;v] $[f like ":*"; .[.oo.classNS;(` vs THIS`.class),f;:;v]; @[THIS;f;:;v]]; v};
-.oo.getf:{[THIS;f] $[f like ":*"; .oo.classNS .` vs THIS`.class;THIS] f};
-.oo.getFields:{y:enlist[(`.meth;::)],y;f:(!). flip y where 2=i:count each y;f[`.meth]:update c:x from (flip `t`n`f!flip ((`;x;{[this] this[`obj]});(`;`;{'string x 0})),({(`;x;.oo.defgen[.oo.getf[;x],.oo.setf[;x];1 2])}each key f),y where 3=i);f[`:.acc]:k!{$["."=(x:string x)0;2;":."~2#x;2;x[0]in .Q.A;1;(":"=x 0)&x[1]in .Q.A;1;0]}each k:key f;f};
+/ List of members: ((`publicVal;iVal);(`.protectedVal;i);(`:staticVal;i);(`;`f;{}))
+/ Functions wishing to call other obj function should have 'th' (this) or TH (THIS) as the first argument. th gives access to the object, TH is the objects name and gives direct access to non-static fields.
+/ th and TH can be converted to each other via .oo.getThis[TH] or .oo.getTHIS[th]. getThis returns protected verion of this with no access to protected fields and no writes to readonly fields.
+
+/ check if a function have TH or th argument.
+.oo.hasTGen:{"j"$$[(enlist)~last v:value x;.oo.hasThis[v 0]|$[104=type v 0;$[.oo.defcore~(v:value v 0)0;max .oo.hasThis each v 1;0];0];any v[1]~/:.oo.proxy;max .oo.hasThis each value[v 0][2;`f];.oo.hasThis v 1]};
+.oo.hasThis:{[f] "j"$$[100=t:type f;$[`th=f:first value[f]1;1;`TH=f;3;0];-11=t;.z.s value f;104=t;.z.s first value f;105=t;.oo.hasTGen f;t within(106;111);.z.s first value f;0]};
+/ Default setters and getters: obj[`field], obj[`field;10], obj[`field;+;10]
+/ Default doesnt exist handler: if the first arg is a sym list applies each.
+.oo.setf:{[TH;f;fn;v] @[TH;f;fn;v]; .oo.getThis TH};
+.oo.setfs:{[TH;f;fn;v] @[.oo.cmap TH`.class;f;fn;v]; .oo.getThis TH};
+.oo.getf:{[TH;f] TH f};
+.oo.getfs:{[TH;f] .oo.cmap[TH`.class] f};
+.oo.getSetGet:{[x] .oo.defgen[;1 2 3] $[x like ":*";.oo.getfs[;x],.oo.setfs[;x;:],.oo.setfs[;x];.oo.getf[;x],.oo.setf[;x;:],.oo.setf[;x]]};
+.oo.undef:{[th;a] $[11=type a 0;(th'). a;'.Q.s a 0]};
+.oo.getFields:{y:enlist[(`.meth;::)],y;f:(!). flip y where 2=i:count each y;f[`.meth]:update c:x from (flip `t`n`f!flip ((`;x;.oo.makeg .oo.defcnstr[;x]);(`;`;.oo.undef)),({(`;x;.oo.getSetGet x)}each key f),y where 3=i);f};
 .oo.class:{[n;s;m] .oo.defclass[n;$[s~(::);();s~();`obj;distinct (),s];.oo.getFields[n;m]]};
 .oo.setupMeth:{[m] m:(exec last f by n from update n:`${string[x],":",string y}'[c;n] from m),exec last f by n from m;(m;.oo.hasThis each m)};
-.oo.getClass:{[a] if[not `:.meths in key c:.oo.makeInstance0[a]; c[j:`:.meths`:.this]:.oo.setupMeth {(,/[.z.s each c`.pclass]),(c:.oo.classNS .` vs x)`.meth}a 0; .oo.setf[c]'[j;c j]]; c};
-.oo.exec:{[n;id;a] if[-11=type m:a 0; if[2=acc:n[`:.acc]m;'protected]; if[(1<count a)&1=acc;'readonly]]; .oo.pexec[n;id;a]};
-.oo.pexec:{[n;id;a] ms:n[`:.meths]; m:a 0; $[-11=type m;if[not m in key ms;a:(m:`;a)];a:(m:`;a)]; a:$[th:(n`:.this)m;$[th=3;n;((')[.z.s[n;id];enlist])];()],1_a; ms[m] . $[count a;a;(),(::)]};
-.oo.new:(')[{c:.oo.getClass[x]; c[`..obj] set c; o:(')[.oo.exec[c`..obj;c`.id];enlist]; o . x; o};enlist];
-.oo.getTHIS:{[t] .oo.getFld[t;`..obj]};
+.oo.getClass:{[a] if[not `:.meths in key c:.oo.makeInstance0[a]; c[`:.meths`:.this]:.oo.setupMeth {(,/[.z.s each c`.pclass]),(c:get .oo.cmap x)`.meth}a 0; c[`:.acc]:.oo.getAcc c]; c};
+.oo.getAcc:{[c] k!{x:last ":"vs string x;$["."=x 0;2;x[0]in .Q.A;1;0]}each k:distinct ((key c),key c[`:.meths])except`.class`};
+.oo.exec:{[n;id;a] if[11=abs type m:a 0; if[2=m:max n[`:.acc](),m;'protected]; if[(1<count a)&1=m;'readonly]]; .oo.pexec[n;id;a]};
+.oo.pexec:{[n;id;a] ms:n[`:.meths]; $[-11=type m:a 0;if[not m in key ms;a:(m:`;a)];a:(m:`;a)]; a:$[th:(n`:.this)m;$[th=3;n;.oo.makeg .z.s[n;id]];()],1_a; ms[m] . $[count a;a;(),(::)]};
+.oo.new:.oo.makeg {c[`..obj] set c:.oo.getClass[x]; o:.oo.getThis c`..obj; o . x; o};
+.oo.getId:.oo.getTHIS:{[t] .oo.getFld[t;`..obj]};
+.oo.getThis:{[TH] .oo.makeg .oo.exec[TH;TH`.id]};
+.oo.defcnstr:{[th;x]th[0].@[th;0;:;last .oo.cmap[x]`.pclass]};
+.oo.setcnstr:{.oo.makeg {[TH;f] if[count[f]<>-1+count TH; 'numargs]; .oo.setf[TH 0]'[f;1_TH]}[;x]}; / set N fields to N values in constr
+.oo.setgcnstr:{.oo.makeg {[TH;f;fn] if[count[f]<c:-1+count TH; 'numargs]; .oo.setf[TH 0]'[c#f;1_TH]; fn[TH]}[;x;y]}; / set up to N fields to N values in constr and call a fn
 .oo.getInfo:{[f] o:get(value first value f)1; o};
 
 / 1: defmeth[`fname|fname]
@@ -107,6 +125,7 @@
 / 3: defmeth[aspect;`fname|fname;arg | args]
 / 4: defmeth[`gname|gname;aspect;`fname|fname;arg | args]
 / returned value - name if it is a symbol and an anonymous multimethod otherwise.
+/ to remove a meth: the same args with body set to (::)
 .oo.defmeth3:{[fn;x;y;z] if[-11=type x;if[x in .oo.aspects.order; :.oo.set[y] fn[::;x;y;z]]]; fn[x;`default;y;z]};
 .oo.defmeth:.oo.defgen[(  / define as a general function
   {.oo.defmeth[`default;x;`any]}; {.oo.defmeth[`default;x;y]}; {.oo.defmeth3[.oo.defmeth;x;y;z]}; / 1 2 3 args
@@ -131,8 +150,8 @@
   fn[3]:{{if[(c:count x)=r:x?y;x,:enlist y];x}/[x;y]}/[fn 3;a:.oo.getArgs args]; / calc args and add new consts
   t:.oo.calcID[string .oo.aspects.order?asp;.oo.aspect[asp;`order];fn 3] each a:(0N 2)#/:a; / calculate id of each row
   if[.oo.aspect[asp]`unique; fn[2]:update f:body from fn[2] where id in t; t:t b:where not t in fn[2]`id; a:a b]; / update existing unique entries
-  if[count t;
-    fn[2]:`id xasc fn[2],([] a:asp; id:t; args:a; f:body); / update dispatch map
+  if[(body~(::))|count t;
+    fn[2]:`id xasc delete from (fn[2],([] a:asp; id:t; args:a; f:body)) where f~\:(::); / update dispatch map
     fn[4]:.oo.calcMap[fn 3;fn 2] each til count args; / recalculate args map
   ];
   : .oo.pack fn;
@@ -142,10 +161,11 @@
 .oo.disp:{[sett;map;cnst;amap;args] .oo.makeCall[sett;args] map asc distinct inter/[.oo.disp1'[amap;args]]};
 .oo.disp1:{[map;a] (raze map[0] .oo.getType a),(raze map[1;1]where(map[1;0])@\:a),map[2;1]where map[2;0]~\:a}; / calc row idx for an arg
 .oo.makeCall:{[sett;args;funcs] if[0=count funcs;'undefined]; .oo.aspect[funcs[0;`a]][`fn][sett;args;funcs;0]};
+.oo.callNext:{[sett;args] if[(-1=sett 2)|0=count funcs:sett 1;'undefined_next]; .oo.aspect[funcs[0;`a]][`fn][sett 0;args;funcs;sett 2]};
 
 / get type of an arg
-.oo.getType:{.oo.pmap $[(t:type x)in 98 99h;.oo.tType x;.oo.shmap t]}; / symbol type of an arg + all parent types
-.oo.tType:{$[99=type x;$[all 98=type each (value x;k:key x);`ktable;not 11=type k;`dict];not -11=type v:value flip x;`mtable;v like ":*";`stable;`ptable]};
+.oo.getType:{.oo.pmap $[(t:type x)in 98 99h;.oo.tType x;t=105;$[`=oo:.oo.isObj[0;o];`func;o`.class];.oo.shmap t]}; / symbol type of an arg + all parent types
+.oo.tType:{$[99=type x;$[all 98=type each (value x;k:key x);`ktable;`dict];not -11=type v:value flip x;`mtable;v like ":*";`stable;`ptable]};
 
 / id - aspN_a1type_a2type_... - to simplify sort and search
 .oo.calcID:{[a;o;cmap;ar] `$a,"_","_"sv{string[z 0],string $[y;999999-;100000+]$[2=z 0;value[.oo.tmap]?z 1;x?z 1]}[cmap;o] each ar};
@@ -188,10 +208,12 @@
 / in-memory: `mtable`table`list`any
 / func: `func`any
 / objs: `name`parent...`obj`dict`any
-.oo.pmap:{m:`any`dict`func`obj`list`atom!(();`any;`any;`any;`any;`any);m:m,(v!((v:v where(v:distinct value .oo.tmap)like "*?list"),\:`list`any)),(k!k:.oo.tmap`b`g`x`h`i`j`e`f`c`s`p`m`d`z`n`u`v`t`enum),\:(`atom`any);m[v]:(v:`table`ktable`stable`ptable`mtable),'(`list`any;`table`dict`any;`table`any;`table`any;`table`list`any);m}[];
+.oo.pmap:{m:`any`dict`func`obj`list`atom!(();`dict`any;`func`any;`obj`any;`list`any;`atom`any);m:m,(v!((v:v where(v:distinct value .oo.tmap)like "*?list"),\:`list`any)),(k!k:.oo.tmap`b`g`x`h`i`j`e`f`c`s`p`m`d`z`n`u`v`t`enum),\:(`atom`any);m[v]:(v:`table`ktable`stable`ptable`mtable),'(`list`any;`table`dict`any;`table`any;`table`any;`table`list`any);m}[];
 
 .oo.class[`obj;::]
-  ((`;`obj;{[THIS] if[`..abstract in key THIS;'abstract];}); / ensure abstract classes can't be created
-   (`;`pthis;{[this] (')[.oo.exec . 1_ value (value this)0;enlist]}); / return protected this
-   (`;`.class;{[THIS] THIS`.class}); / obj class
+  ((`;`obj;{[TH] if[`..abstract in key TH;'abstract];}); / ensure abstract classes can't be created
+   (`;`this;{[th] .oo.makeg .oo.exec . 1_ value (value th)0}); / return protected this
+   (`;`.class;{[TH] TH`.class}); / obj class
+   (`;`.pclass;{[TH] TH`.pclass});
    (`..abstract;1));
+
