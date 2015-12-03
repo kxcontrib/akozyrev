@@ -112,11 +112,12 @@
 .oo.exec:{[n;id;a] if[11=abs type m:a 0; if[2=m:max n[`:.acc](),m;'protected]; if[(1<count a)&1=m;'readonly]]; .oo.pexec[n;id;a]};
 .oo.pexec:{[n;id;a] ms:n[`:.meths]; $[-11=type m:a 0;if[not m in key ms;a:(m:`;a)];a:(m:`;a)]; a:$[th:(n`:.this)m;$[th=3;n;.oo.makeg .z.s[n;id]];()],1_a; ms[m] . $[count a;a;(),(::)]};
 .oo.new:.oo.makeg {c[`..obj] set c:.oo.getClass[x]; o:.oo.getThis c`..obj; o . x; o};
-.oo.getId:.oo.getTHIS:{[t] .oo.getFld[t;`..obj]};
+.oo.getTHIS:{[t] .oo.getFld[t;`..obj]};
+.oo.getId:{[t] $[-11=type t;t;.oo.getFld[t;`..obj]]};
 .oo.getThis:{[TH] .oo.makeg .oo.exec[TH;TH`.id]};
 .oo.defcnstr:{[th;x]th[0].@[th;0;:;last .oo.cmap[x]`.pclass]};
-.oo.setcnstr:{.oo.makeg {[TH;f] if[count[f]<>-1+count TH; 'numargs]; .oo.setf[TH 0]'[f;1_TH]}[;x]}; / set N fields to N values in constr
-.oo.setgcnstr:{.oo.makeg {[TH;f;fn] if[count[f]<c:-1+count TH; 'numargs]; .oo.setf[TH 0]'[c#f;1_TH]; fn[TH]}[;x;y]}; / set up to N fields to N values in constr and call a fn
+.oo.setcnstr:{.oo.makeg {[TH;f] if[count[f]<>-1+count TH; 'numargs]; .oo.setf[TH 0;;:]'[f;1_TH]}[;x]}; / set N fields to N values in constr
+.oo.setgcnstr:{.oo.makeg {[TH;f;fn] if[count[f]<c:-1+count TH; 'numargs]; .oo.setf[TH 0;;:]'[c#f;1_TH]; fn[TH]}[;x;y]}; / set up to N fields to N values in constr and call a fn
 .oo.getInfo:{[f] o:get(value first value f)1; o};
 
 / 1: defmeth[`fname|fname]
