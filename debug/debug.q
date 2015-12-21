@@ -24,15 +24,15 @@
 .d.rev[0x0b0c0d0e0f1011]:{[a;c] .d.push ((til 7)!((`c;"()");(`c;(),"0");(`c;(),"1");(`c;(),",");(`c;(),"`");"::";"")) c-11};
 .d.rev[`byte$0x60+til 23]:{[a;c] .d.push (`a;string a[`l;0x76-c])};
 .d.rev[`byte$0x78+til 8]:{[a;c] .d.push (`a;string a[`a;c-0x78])};
-.d.rev[`byte$0x81+til 31]:{[a;c] .d.push (`a;string a[`g;c-0x80])};
-.d.rev[`byte$0xa0+til 96]:{[a;c] .d.push $[(t:type v:a[`c;c-0xa0]) in -5 -6 10 -10 11 -11 -4 4h;(`a;.Q.s1 v);any v~/:(?;!;.;@);(`a;.Q.s1 v);t>99h;$[`~r:first where v~/: value `.q;(`a;.Q.s1 v);(`a;$[r~`inv;"key";r~`mmu;(),"$";string r])];.Q.s1 v]};
+.d.rev[`byte$0x80+til 31]:{[a;c] .d.push (`a;string a[`g;c-0x80])};
+.d.rev[`byte$0xa0+til 96]:{[a;c] .d.push $[(t:type v:a[`c;c-0xa0]) in -5 -6 -7 10 -10 11 -11 -4 4h;(`a;.Q.s1 v);any v~/:(?;!;.;@);(`a;.Q.s1 v);t>99h;$[`~r:first where v~/: value `.q;(`a;.Q.s1 v);(`a;$[r~`inv;"key";r~`mmu;(),"$";string r])];.Q.s1 v]};
 .d.rev[0x00]:{[a;c] .d.push ": ",.d.pops[]};
 .d.rev[0x77]:{[a;c] .d.push (`a;".z.s")};
 .d.rev[0x01]:{[a;c] .d.push "'",.d.pops[]};
 .d.rev[0x52]:{[a;c] f:.d.pop[]; v:.d.pops[];.d.push $[10h=type f;"(",f,")",v;`ad~f 0;f[1],"[",v,"]";first[f 1] in "@$?_";(`a;v,f 1);$[v~"::";(`a;.d.str[f],"[]");.d.str[f]," ",v]];};
 .d.rev03:{[a;c] .d.rev[c][a;c:`byte$c+0x60]; .d.push raze reverse (.d.pops[];": ";.d.pops[])};
 .d.rev04:{[a;c;f] .d.rev[c][a;c]; v:.d.popns[3]; .d.push v[0],$[v[1]~"()";"";"[",$[v[1] like "enlist*";7_ v[1];-1_1_ v[1]],"]"],$[f=0x00;": ";string[.d.binary[`byte$0x40+f]],": "],v[2]};
-.d.rev0a:{[a;c] 
+.d.rev0a:{[a;c]
   v:.d.str each vo:.d.popn[1+c];
   if[v[0]~"enlist";: .d.push (`li;"(",(";" sv 1_ v),")")];
   if[(not any (1_ v)~\:"")&((`$v[0]) in `inter`except`xasc`xdesc`each`vs`sv`set`xkey`lj`ij`uj,`$("sv/:";"vs/:"))&c=2; : .d.pushbin . vo];
@@ -68,7 +68,7 @@
    ];
   : n+1+(t in 0x0304050607090a)+(t in 0x0407);
  };
-.d.rfn:{[f] 
+.d.rfn:{[f]
   sti:.d.sti; .d.rmapn:.d.lev:0; .d.sti:4000; .d.push "";
   v:value f; .d.rmain[`a`l`g`c!(v 1;v 2;v 3;-1_4_ v);v 0;-1+count v 0]/[0];
   r: ("I"$first l)!last l:flip (0N 2)#1_"\000" vs .d.pops[],"\000",string[.d.rmapn],"\000",.d.pops[];
@@ -104,7 +104,7 @@
 .d.cmap[0x03]:{.d.n+:1; v:$[0x17<c:.d.c .d.n;.d.a[`.a;c-0x18];.d.a[`.l;0x16-c]]; .d.a[v]:.d.peak[]; `c}; / val 03 var
 .d.cmap[0x04]:{
    i:.d.pop[]; v:.d.pop[]; .d.n+:1;
-   if[0x80<c:.d.c .d.n; l:g:.d.a[`.g;c-0x80]];
+   if[0x79<c:.d.c .d.n; l:g:.d.a[`.g;c-0x80]];
    if[0x80>c;
      l:$[0x77<c;.d.a[`.a;c-0x78];.d.a[`.l;0x76-c]];
      `.d.gvar set .d.a[l]; g:`.d.gvar;
@@ -121,25 +121,26 @@
 .d.cmap[0x09]:{.d.n-:.d.c .d.n+1; `c};
 .d.cmap[0x08]:{.d.n-:1; .d.cmap[0x07][x]};
 
-.d.resolve:{[n] $[n in key .d.a;(`v;.d.a n);@[{(`v;value x)};$[(.d.a[`.ns]~`)or n like ".*";n;` sv `,.d.a[`.ns],n];{[x;y](`e;"Undefined global ",string[x],": ";y)}[n]]]};
+.d.resolve:{[n] $[n in key .d.a;(`v;.d.a n);@[{(`v;@[value;x;{$[x like ":*";x;'y]}[x]])};$[(.d.a[`.ns]~`)or n like ".*";n;` sv `,.d.a[`.ns],n];{[x;y](`e;"Undefined global ",string[x],": ";y)}[n]]]};
 .d.cmap[`byte$0x60+til 23]:{[c] .d.push .d.a .d.a[`.l;0x76-c]; `c};
 .d.cmap[`byte$0x78+til 8]:{[c] .d.push .d.a .d.a[`.a;c-0x78]; `c};
-.d.cmap[`byte$0x81+til 31]:{[c] if[`v=first v:.d.resolve .d.a[`.g;c-0x80]; .d.push last v; :`c]; .d.excp . 1_ v};
+.d.cmap[`byte$0x80+til 32]:{[c] if[`v=first v:.d.resolve .d.a[`.g;c-0x80]; .d.push last v; :`c]; .d.excp . 1_ v};
 .d.cmap[`byte$0xa0+til 96]:{[c] .d.push .d.a[`.c;c-0xa0]; `c};
 
 / parted funcs
 / expected min number of args
-.d.nargs:{[f] $[100h=t:type f;count value[f]1; t=101h;1;t in 107 108h;$[2=n:.d.nargs[value f];1;n]; t in 102 109 110 111h;2; 104h=t;.d.nargsp[value f]; 105h=t;.d.nargs[last value f]; 106h=t;.d.nargs[value f];'"not impl"]};
-\d .q
-if[not `empargs in key `.q; `empargs set {[p] where 104h={type (1;x)} each p}]; / prevent interpretation
-\d .
-.d.nargsp:{[p] (max 0,1+.d.nargs[p 0]-count p)+count empargs p};
-.d.partify:{(value ("{x[",";" sv {$[null x;"";"y ",string x]} each ?[y~\:`:dbg:11;0N;til count y]),"]}")[x;y]};
-.d.margs:{[pa;a] i:empargs pa; if[count i; pa[i]:(count i)#a]; : 1_ ((::),pa),count[i]_ a};
+.d.nargs:{[f] $[100h=t:type f;count value[f]1; t=101h;1;t in 107 108h;$[2=n:.d.nargs[value f];1;n]; t in 102 103 109 110 111h;2; 104h=t;.d.nargsp[value f]; 105h=t;.d.nargs[last value f]; 106h=t;.d.nargs[value f];'"not impl"]};
+/ \d .q
+/ if[not `empargs in key `.q; `empargs set {[p] where 104h={type (1;x)} each p}]; / prevent interpretation
+/ \d .
+.d.empargs:{i:x~\:(::);i[w]:not null x w:where i; where i};
+.d.nargsp:{[p] (max 0,1+.d.nargs[p 0]-count p)+count .d.empargs p};
+.d.partify:{(value ("{[x;y]x[",";" sv {$[null x;"";"y ",string x]} each ?[y~\:`:dbg:11;0N;til count y]),"]}")[x;y]};
+.d.margs:{[pa;a] i:.d.empargs pa; if[count i; pa[i]:(count i)#a]; : 1_ ((::),pa),count[i]_ a};
 .d.pexec:{[f;a] a:.d.margs[1_ v:value f;a]; $[104h=type v 0;.d.pexec[v 0;a];.d.apply[v 0;a]]};
 .d.apppart:{[f;a] $[0=.d.nargsp f,a;.d.pexec[f;a];.d.push f . a]; `c};
 .d.app3:{[f;a]
-  if[f~('); : $[2=count a;[.d.push ('). a;`c];.d.excp["Func composition error: ";"rank"]]];
+  if[f~('); : $[count[a] in 1 2;[.d.push ('). a;`c];.d.excp["Each both/func composition error: ";"rank"]]];
   '"Not impl";
  };
 .d.appfn:{[f;a] / @ and . with 3 or 4 args
@@ -164,7 +165,7 @@ if[not `empargs in key `.q; `empargs set {[p] where 104h={type (1;x)} each p}]; 
  };
 .d.eachr:{[f;a;s]
   if[2<>count a; '"rank"];
-  if[99h=t:type a s;k:key a s; a[s]:value a s; : k!.d.eachr[f;a]]; / remove dicts
+  if[99h=t:type a s;k:key a s; a[s]:value a s; : k!.d.eachr[f;a;s]]; / remove dicts
   if[not (t within 0 19h)or t=98h; : f . a]; / only atoms
   i:0; r:(count a s)#(::);
   do[count a s;r[i]:$[s;f[a 0;a[1;i]];f[a[0;i];a 1]]; i+:1];
@@ -184,22 +185,22 @@ if[not `empargs in key `.q; `empargs set {[p] where 104h={type (1;x)} each p}]; 
  };
 / 1: f/[a] ; f/[n;a] ; f/[g;a]
 / 2: f/[a]
-/ 2 or more f/[number of params] 
+/ 2 or more f/[number of params]
 .d.over:{[f;a;s]
   n:.d.nargs f; c:count a; r:();
   if[(c=1)&n=1; af:al:a 0; fl:1b;  while[fl; r:s[r] al; fl:not any (al:f al)~/:(al;af)]; :r];
-  if[(c=2)&n=1; r:s[r] al:a 1; $[-6h=t:type a 0; do[a 0;r:s[r] al:f al]; while[a[0] al;r:s[r] al:f al]]; :r];
+  if[(c=2)&n=1; r:s[r] al:a 1; $[(t:type a 0)in -6 -7h; do[a 0;r:s[r] al:f al]; while[a[0] al;r:s[r] al:f al]]; :r];
   if[(n=1)or c>n; '"rank"];
   if[(n>2)&c<n; :$[s~{x;y};(f/). a;(f\). a]]; / parted
   if[any w:99h=t:type each a1:(c:c<>1)_ a;if[1<count k:distinct key each a1 w:where w;'"domain"];$[98h=type a;a:value each a;a[c+w]:value each a1 w]; :$[s~{x;y};s[1];![k 0]] .d.over[f;a;s]];
-  if[not c; if[1=count a:a 0; :s[r] first a]; if[2=count a; : s[first a] f . a]; a:(first a;1_ a)];
+  if[not c; if[1=count a:a 0; :s[r] first a]; if[2=count a; : s[first a] f . a]; r:1#a; a:(first a;1_ a)];
   if[not any (t within 0 19h)or t=98h; : f . a];
   al: first a; a:flip 1 _ a; i:0;
   do[count a; r:s[r] al:f[al]. a i; i+:1];
   : r;
  };
 .d.appadv:{[f;a]
-  ft:$[104h=t:type v:value f;`u;t<100h;`i;v in(.;@);`u;100h=t;$[(first (value v)3)in`q`h;`i;`u];t in 101 102 103 112h;`i;`u]; / f type
+  ft:$[104h=t:type v:value f;`u;t<100h;`i;v in(.;@);`u;100h=t;$[(first (value v)3)in`q`h;`i`u f~(peach);`u];t in 101 102 103 112h;`i;`u]; / f type
   if[ft=`i; : .[.d.pushf;(f;a);{.d.excp["Q function failed: ";x]}]]; / do not interpret internal fns
   if[.d.nargs[f]>count a; : .[.d.pushf;(f;a);{.d.excp["Adv unexpected fail: ";x]}]];
   if[106h=t:type f; : .d.apply[.d.each;(v;a)]];
@@ -220,11 +221,11 @@ if[not `empargs in key `.q; `empargs set {[p] where 104h={type (1;x)} each p}]; 
   if[any a~\:`:dbg:11; .d.push .d.partify[f;a]; :`c]; / missing args
   if[(100h>t)or 112h=t; : .[.d.pushf;(f;a);{.d.excp["Function failed: ";x]}]];
   v:value f;
-  if[105h=t; : .d.apply[{x y . z};(v 0;v 1;a)]];
+  if[105h=t; if[(count a)<.d.nargs f;.d.push f . a; :`c]; : .d.apply[{x y . z};(v 0;v 1;a)]];
   if[104h=t; : .d.apppart[f;a]];
   if[103h=t; : .d.app3[f;a]];
   if[t in 106 107 108 109 110 111h; :.d.appadv[f;a]];
-  if[f~(each); :.d.appadv[(a[0]');1_ a]];
+  if[f~(each); if[1=count a; .d.push (a[0]'); :`c]; :.d.appadv[(a[0]');1_ a]];
   if[any v~/:18 19; :.d.appfn[f;a]];
   if[(any v~/:16 17)&2<count a; :.d.sel[f;a]];
   ce:$[101h=t;1;102h=t;2;count v 1]; / expected args
@@ -234,7 +235,7 @@ if[not `empargs in key `.q; `empargs set {[p] where 104h={type (1;x)} each p}]; 
   if[c>ce; : .d.excp["Wrong number of arguments: ";"rank"]];
   .d.push (`:dbg:fncall;.d.c;.d.n;.d.a;.d.stprev); / save the old frame
   .d.c:v 0;.d.n:-1;.d.pc:0x00; .d.bpsf:.d.bps f; .d.stprev:.d.sti;
-  .d.a:n!(count n:v[1],v[2])#(::); .d.a[`.ns`.c`.a`.l`.g`.f`.id]:(first v 3;-1_4_ v;v 1;v 2;v 3;f;.z.P); / args/local vars + namespace,const,arg,loc,glob
+  .d.a:n!(count n:v[1],v[2])#enlist (); .d.a[`.ns`.c`.a`.l`.g`.f`.id]:(first v 3;-1_4_ v;v 1;v 2;v 3;f;.z.P); / args/local vars + namespace,const,arg,loc,glob
   .d.a[v 1]:a; / assign vars
   : `c;
  };
