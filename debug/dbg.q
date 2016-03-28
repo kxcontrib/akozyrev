@@ -18,7 +18,7 @@ c[1]:{z;(y;{'fr x};y)}; / raise an exception
 c[2]:{z;(y-1;::;())}; / end of stm: ;
 c[3]:{(y;{gt 1;:fr[x;y]:fr z}[8-dm z;im z:96+z 1];y)}; / simple assign
 c[4]:{(y-1;({fr::.[fr;x:x,fr y 1;y 0;fr y 2];ass[fr;x]};{.[x;y:fr y 1;y 0;fr y 2];ass[x;y]})[d=2](6,;5,;x 3)[d:-2+dm c]im c:z 1;(ub 32+z 2),y-0 1)}; / general assign
-c[5 6 7 8 9]:({(y-1;gt;z 1)};{(y-1;{gt$[fr y;1;x]}z 1;y)};{(y;{gt$[fr y;[fr[y]-:1;2];1+x]}z 2;y)}),2#{(y-8=z 0;{gt neg 1+x};z 1)}; / goto forward/condit/do/bkward
+c[5 6 7 8 9]:({(y-1;gt;z 1)};{(y-1;{gt$[fr y;1;x]}z 1;y)};{(y;{gt$[0<fr y;[fr[y]-:1;2];1+x]}z 2;y)}),2#{(y-8=z 0;gt;neg (8=z 0)+z 1)}; / goto forward/condit/do/bkward
 c[10 82 83]:{(y-a;{fr[4]:cc 0;if[x;gt 1];$[count e:empargs a:1_z:fr z;part[z 0;a;e];appf2[y;z]]}[10=z 0;83=z 0];y-til 1+a:1^z 1)}; / applications, enlist will deal with the magic value
 
 / helpers
@@ -27,10 +27,10 @@ cc:{fr[0;fr 1] x}; / current bytecode
 ass:{gt 2;$[4=count fr[0;1+fr 1];::;$[y~();get x;x . y]]}; / assign + implicit return = null value
 excp:{@[{if[e;e-:1;fr::{$[(::)~y:y 3;'x;y]}[x]/[{6<>x 2};fr];fr[2 4]:(5;sTop::cc 0);v:$[99<type f:fr sTop;app[{x y};(f;x)];f];gt 1;:v];'x};x;{fr[2 4]:(1;x)}]}; / handle exceptions
 spf:{(x~(@))|(x~(.))|(100=t)|(t:type x)within 104 111h}; / special function - worth interpreting in gen apply
-nargs:{v:value x;$[0=t:-100+type x;count v 1;t=1;1;t in 2 9 10 11;2;t in 7 8;$[2=n:nargs v;1;n];t=4;nargsp v;t=5;nargs last v;t=6;nargs v;'"not impl"]}; / num of args
+nargs:{v:value x;$[0=t:-100+type x;count v 1;t in 1 9;1;t in 2 3 10 11;2;t in 7 8;$[2=n:nargs v;1;n];t=4;nargsp v;t=5;nargs last v;t=6;nargs v;'"not impl"]}; / num of args
 nargsp:{(0|1+nargs[x 0]-count x)+count empargs x}; / required num of args for parted fn
 empargs:{r:();i:-1;do[count x;r,:104=type(1;x i+:1)];where r}; / idx of missing args
-part:{$[9>c:count y;x . y;(value "{x[",(";"sv @["y ",/:string til c;z;:;(count z)#enlist""]),"]}")[x;y]]};
+part:{$[9>c:count y;x . y;(value "{[x;y]x[",(";"sv @["y ",/:string til c;z;:;(count z)#enlist""]),"]}")[x;y]]};
 tpart:{if[count b:(c:count i:empargs a:1_ v:value x)#y;a[i]:b];a:a,c _ y;$[104=type v 0;.z.s;app][v 0;a]}; / transform part fn into app form
 out:{(-1;::)[.z.w>0]};
 senv:{sT::.z.P;pc::0};
@@ -38,35 +38,33 @@ senv:{sT::.z.P;pc::0};
 / app functions
 app:{apm[abs type x][x;y]}; / general app
 appf:{d:x~(.);if[(99<type y 0)&3=c:count y;fr[2]:6;:appf[x;2#y]];$[1=c;x . y;2=c;appf2[d;y];spf y 2;app[(appN 4&0|d+2*c-3);y];x . y]}; / @ and . : in exc blk mark the frame
-appf2:{Y,::enlist (x;y);if[x;if[(type y 1)within 0 98;:app . y];'`type];app[y 0;1_ y]}; / general app, x=1 - (.)[a;b]
-appN:({@[x;y;:;z each x y]}; / @ - 3 args
-   {z:cross/[z]};
-   {[i1;a;i2;f]$[0=count i2;.[a;i1;:;f a . i1];0>type i:i2 0;.z.s[i1;;;f]/[a;i,:\1_i2];.z.s[i1,i;;;f]/[a;1_i2]]}(); / . 3 args
-   {[a;i;f;v] @[a;i;:;f'[a i;v]]}; / @ 4 args
-   {[i1;a;i2;f;v]$[0=count i2;.[a;i1;:;f[a . i1;v]];0>type i:i2 0;.z.s[i1;;;f]/[a;i,:\1_i2;v];.z.s[i1,i;a;1_i2;f;v]]}(); / . 4 args
-   {'`rank}); / @ and .  default
-appq:{if[4>count y;x . y];fr[4]:y;value["{[",(";"sv string v 0),"]",(";"sv string[v 2],'":.",n,".fr[6]",/:string 1+til count (v:value fr[6;0])2),";(",string[x],"). .",(n:string ns),".fr 4}"]. fr[5]}; / qsql, create env and exec fn
+appf2:{if[x;if[(type y 1)within 0 98;:app . y];'`type];app[y 0;1_ y]}; / general app, x=1 - (.)[a;b]
+appN:({@[x;y;:;z each x y]};{appg[0;x;y;z;0]};{[a;i;f;v]@[a;i;:;f'[a i;v]]};{[a;i;f;v]appg[1;a;i;f;v]};{'`rank}); / @ and .  3/4 args + default
+appg:{[ty;a;i;f;v]if[0=count i;i:(),(::)];{[ty;f;i2;a;i1;v]if[0=count i2;:.[a;(),i1;:;$[ty;f[;v];f] a .(),i1]];
+    if[(::)~i:i2 0;i:til count a . i1,(::)];if[not(t:type i)within 0 98h;:.z.s[ty;f;1_i2;a;i1,enlist i;v]];
+    .z.s[ty;f;1_i2]/[a;i1,/:$[98=t;enlist each i;i];v]}[ty;f;i;a;();v]};
+appq:{X::(x;y);if[4>count y;:x . y];fr[4]:y;value["{[",(";"sv string v 1),"]",$[count(v:value fr[6;0])2;";"sv string[v 2],'(":",n,"[6]"),/:string 1+til count v 2;""],";",string[x],"[",(";"sv(n:".",string[ns],".fr"),/:"[4]",/:string til count fr 4),"]}"]. -1_fr[5]}; / qsql, create env and exec fn
 / app type map
 apf:(each;over;scan;prior);
 apm:128#(.); / default application
-apm[11]:{$[-11h=type x;app[get x;y];x . y]}; / redirect globals
-apm[100]:{$[4>i:apf?x;app[cnst[7+i]y 0;1_y];count[y]<>count(v:value x)1;x . y;na|(first v 3)in skpns;x . y;gif[x;y;fr]]}; / simple fn call
+apm[11]:{$[-11h=type x;$[":"=string[x]0;x . y;app[get x;y]];x . y]}; / redirect globals
+apm[100]:{$[count[y]<>count(v:value x)1;x . y;4>i:apf?x;app[cnst[7+i]y 0;1_y];na|(first v 3)in skpns;x . y;gif[x;y;fr]]}; / simple fn call
 apm[101 102]:{$[x in (@;.);appf[x;y];x in (!;?);appq[x;y];x~(enlist);y;x . y]}; / special forms/selects/other fns
 apm[104]:{$[nargsp x,y;x . y;tpart[x;y]]}; / parted fn
-apm[105]:{app[{x y . z};value[x],enlist y]}; / composite fn
-apm[106+til 6]:{if[count[y]<nargs x;:x . y];if[na|not[spf v]&$[100=type v:value x;(not v in apf)&(first value[v]3)in skpns;1b];:x . y];app[adv t;(v;y;t:type[x]-106)]}; / adverbs
+apm[105]:{$[(count y)<nargs x;x . y;app[{x y . z};value[x],enlist y]]}; / composite fn
+apm[106+til 6]:{if[na|not[spf v]&$[100=type v:value x;(not v in apf)&(first value[v]3)in skpns;1b];:x . y];if[count[y]<nargs x;:x . y];app[adv t;(v;y;t:type[x]-106)]}; / adverbs
 / adverbs
 adv:6#(::);
-adv[0]:{z;if[98=type y;:(cols y)!.z.s[x;value each y;0]];if[any f:99=t:type each y;if[not(all f)|all c~\:k:distinct raze c:key each y w:where f;'`domain];y[w]:y[w]@\:k;:k!.z.s[x;$[98=type y;value flip y;y];0]];
+adv[0]:{z;if[98=type y;:(cols y)!.z.s[x;value each y;0]];if[any f:99=t:type each y;if[not((3>count y)&all f)|all c~\:k:distinct raze c:key each y w:where f;'`domain];y[w]:y[w]@\:k;:k!.z.s[x;$[98=type y;value flip y;y];0]];
   if[any t within 0 98h;y:flip y;i:-1;r:(c:count y)#(::);do[c;r[i]:x . y i+:1];:r];x . y}; / each
 adv[1 2]:{s:({y};{x,enlist y})z=2;n:nargs x;c:count y;r:();if[(c=1)&n=1;f:l:y 0;while[1;r:s[r;l];if[(f~l)|(l:x l)~l;:r]]]; / iterate on val
-  if[(c=2)&n=1;r:s[r;l:y 1];$[type[a:y 0]in -6 -7h;do[a;r:s[r;l:x l]];while[a l;r:s[r;l:f l]]];:r]; / iterate N/cond
-  if[any f:99=t:type each a:(c:c<>1)_y;if[not all 1_~'[k 0;k:key each a w:where f];'`domain];$[98=type y;y:value flip y;y[c+w]:value each a w];:$[z=1;::;![k 0].z.s[x;y;z]]]; / dict case
-  if[not c;$[1=c:count y:y 0;:s[r;first y];2=c;:s[y 0;x . y];[r:1#y;y:(y 0;1_ y)]]]; / adjust f[a] to f[a;b]
-  if[any t within 0 98h;l:y 0;y:flip 1_y;i:-1;do[count y;r:s[r;l:x[l]. y i+:1]];:r];x . y}; / scan/over
-adv[3]:{if[99=type l:last y;y:(-1_y),enlist value l;:(key l)!.z.s[x;y;z]]; / dict case
+  if[(c=2)&n=1;r:s[r;l:y 1];$[-7=type a:y 0;do[a;r:s[r;l:x l]];while[a l;r:s[r;l:x l]]];:r]; / iterate N/cond
+  if[any f:99=t:type each a:(c:c<>1)_y;if[not all k[0]~/:k:key each a w:where f;'`domain];$[98=type y;y:value each y;y[c+w]:value each a w];:$[z=2;![k 0](),;::].z.s[x;y;z]]; / dict case
+  if[not c;$[1=c:count y:y 0;:first y;0=c;:();2=c;:s[y 0;x . y];[y:(y 0;1_ y);r:s[r;y 0]]]]; / adjust f[a] to f[a;b]
+  if[any t within 0 98h;l:y 0;y:flip 1_y;i:-1;if[(z=1)&0=c:count y;:l];do[c;r:s[r;l:x[l]. y i+:1]];:r];x . y}; / scan/over
+adv[3]:{if[1=nargs x;:adv[0][x;y;0]];if[99=type l:last y;y:(-1_y),enlist value l;:(key l)!.z.s[x;y;z]]; / dict case
   if[all not(type each y)within 0 98h;:$[1=count y;y 0;x . y]]; / atom case
-  if[1=nargs x;:adv[0][x;y;0]];y:enlist[$[1=count y;l -1;y 0]],l;i:0;r:(count l)#(::);do[count l;r[i]:x[y i+:1;y i]];r}; / peach
+  y:enlist[$[1=count y;$[98=type y 0;0#l -1;l -1];y 0]],l;i:0;r:(count l)#(::);do[count l;r[i-1]:x[y i+:1;y i]];r};
 adv[4 5]:{s:z=4;if[99=t:type y s;k:key y s;y[s]:value y s;:k!.z.s[x;y;z]];
   if[not(t within 0 98h);:x . y];i:0;r:(count y s)#(::);do[count y s;r[i]:$[s;x[y 0;y[1;i]];x[y[0;i];y 1]];i+:1];r}; / each right/left
 
@@ -103,6 +101,7 @@ psn:{out[]pstk x}; / print N stack entries
 ps:{psn 10}; / print 10 stack entries
 pl:{out[]txt fr}; / print current line
 f:{out[]fr[6;0]}; / print current function
+v:{(v[1]!-1_fr 5),((v:value fr[6]0)2)!1_fr 6};
 
 / map from code to txt
 tfs:(!). 2#2(,:)/(::); / processed fns
